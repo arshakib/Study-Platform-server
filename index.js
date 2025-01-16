@@ -80,9 +80,14 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/sessions", async (req, res) => {
+      const result = await sessionCollection.find().toArray();
+      res.send(result);
+    });
+
     app.get("/sessions/:email", async (req, res) => {
       const email = req.params.email;
-      console.log(email);
+
       const query = { tutorEmail: email };
       const result = await sessionCollection.find(query).toArray();
       res.send(result);
@@ -91,7 +96,6 @@ async function run() {
     app.patch("/session/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
-      console.log(filter);
       const updateDoc = {
         $set: {
           status: "pending",
@@ -99,6 +103,28 @@ async function run() {
         },
       };
       const result = await sessionCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.patch("/adminup/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = { $set: {} };
+      if (data.registrationFee !== undefined) {
+        updateDoc.$set.registrationFee = data.registrationFee;
+      }
+      if (data.status !== undefined) {
+        updateDoc.$set.status = data.status;
+      }
+      const result = await sessionCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete("/sessions/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await sessionCollection.deleteOne(query);
       res.send(result);
     });
 
@@ -115,6 +141,13 @@ async function run() {
 
     app.get("/materials", async (req, res) => {
       const result = await materialCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/materials/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await materialCollection.find(query).toArray();
       res.send(result);
     });
 
