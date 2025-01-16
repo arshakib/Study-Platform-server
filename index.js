@@ -43,6 +43,37 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/users", async (req, res) => {
+      const { search } = req.query;
+      const query = { name: { $regex: search, $options: "i" } };
+      if (search) {
+        const result = await userCollection.find(query).toArray();
+        return res.send(result);
+      }
+      const result = await userCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.patch("/users/:id", async (req, res) => {
+      const id = req.params.id;
+      const role = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          role: role.role,
+        },
+      };
+      const result = await userCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.get("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await userCollection.findOne(query);
+      res.send(result);
+    });
+
     app.post("/sessions", async (req, res) => {
       const session = req.body;
       const result = await sessionCollection.insertOne(session);
