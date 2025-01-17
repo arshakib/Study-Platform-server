@@ -31,6 +31,7 @@ async function run() {
     const userCollection = client.db("study").collection("users");
     const sessionCollection = client.db("study").collection("sessions");
     const materialCollection = client.db("study").collection("materials");
+    const noteCollection = client.db("study").collection("notes");
 
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -80,8 +81,20 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/sessionnumber", async (req, res) => {
+      const result = await sessionCollection.estimatedDocumentCount();
+      res.send({ count: result });
+    });
+
     app.get("/sessions", async (req, res) => {
-      const result = await sessionCollection.find().toArray();
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      const query = { status: "approved" };
+      const result = await sessionCollection
+        .find(query)
+        .skip(page * size)
+        .limit(size)
+        .toArray();
       res.send(result);
     });
 
@@ -90,6 +103,13 @@ async function run() {
 
       const query = { tutorEmail: email };
       const result = await sessionCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/onesessions/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await sessionCollection.findOne(query);
       res.send(result);
     });
 
@@ -169,6 +189,40 @@ async function run() {
         },
       };
       const result = await materialCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.post("/notes", async (req, res) => {
+      const note = req.body;
+      const result = await noteCollection.insertOne(note);
+      res.send(result);
+    });
+
+    app.get("/notes/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email: email };
+      const result = await noteCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.patch("/notes/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          title: data.title,
+          description: data.description,
+        },
+      };
+      const result = await noteCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete("/notes/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await noteCollection.deleteOne(query);
       res.send(result);
     });
 
