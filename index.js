@@ -36,6 +36,20 @@ async function run() {
     const bookedSessionCollection = client
       .db("study")
       .collection("bookedSessions");
+    const reviewCollection = client.db("study").collection("reviews");
+
+    app.post("/collectreview", async (req, res) => {
+      const review = req.body;
+      const result = await reviewCollection.insertOne(review);
+      res.send(result);
+    });
+
+    app.get("/reviews/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { reviewSessionId: id };
+      const result = await reviewCollection.find(query).toArray();
+      res.send(result);
+    });
 
     app.post("/users", async (req, res) => {
       const user = req.body;
@@ -45,6 +59,12 @@ async function run() {
         return res.send({ message: "user already exists" });
       }
       const result = await userCollection.insertOne(user);
+      res.send(result);
+    });
+
+    app.get("/tutors", async (req, res) => {
+      const query = { role: "tutor" };
+      const result = await userCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -117,6 +137,13 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/bookedsessiondata/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await sessionCollection.find(query).toArray();
+      res.send(result);
+    });
+
     app.patch("/session/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
@@ -160,6 +187,13 @@ async function run() {
         return res.status(400).send({ message: "Material already exists" });
       }
       const result = await materialCollection.insertOne(material);
+      res.send(result);
+    });
+
+    app.get("/bookedmeterials/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { sessionId: id };
+      const result = await materialCollection.find(query).toArray();
       res.send(result);
     });
 
@@ -232,6 +266,14 @@ async function run() {
 
     app.post("/payment", async (req, res) => {
       const paymentInfo = req.body;
+      const query = {
+        bookedsessionId: paymentInfo.bookedsessionId,
+      };
+
+      const existingPayment = await bookedSessionCollection.findOne(query);
+      if (existingPayment) {
+        return res.status(400).send({ message: "Payment already exists" });
+      }
       const result = await bookedSessionCollection.insertOne(paymentInfo);
       res.send(result);
     });
@@ -247,6 +289,37 @@ async function run() {
 
     app.get("/payment", async (req, res) => {
       const result = await bookedSessionCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.get("/bookedsessions/:email", async (req, res) => {
+      const page = parseInt(req.query.page);
+      const size = parseInt(req.query.size);
+      const email = req.params.email;
+      const query = { studentId: email };
+      const result = await bookedSessionCollection
+        .find(query)
+        .skip(page * size)
+        .limit(size)
+        .toArray();
+      res.send(result);
+    });
+
+    app.get("/bookednumber/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { studentId: email };
+      const result = await bookedSessionCollection.estimatedDocumentCount(
+        query
+      );
+      res.send({ count: result });
+    });
+
+    app.get("/tutoremail/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = {
+        studentId: email,
+      };
+      const result = await bookedSessionCollection.find(query).toArray();
       res.send(result);
     });
 
