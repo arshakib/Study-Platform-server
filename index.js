@@ -37,6 +37,38 @@ async function run() {
       .db("study")
       .collection("bookedSessions");
     const reviewCollection = client.db("study").collection("reviews");
+    const rejectedSessionCollection = client
+      .db("study")
+      .collection("rejectedSessions");
+
+    app.post("/rejectdata", async (req, res) => {
+      const rejectData = req.body;
+      const result = await rejectedSessionCollection.insertOne(rejectData);
+      res.send(result);
+    });
+
+    app.get("/rejectdata", async (req, res) => {
+      const result = await rejectedSessionCollection.find().toArray();
+      res.send(result);
+    });
+
+    // app.put("/rejectdata/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const data = req.body;
+    //   const filter = { _id: new ObjectId(id) };
+    //   const updateDoc = {
+    //     $set: {
+    //       reject: data.reject,
+    //       feedback: data.feedback,
+    //     },
+    //   };
+
+    //   const result = await rejectedSessionCollection.updateOne(
+    //     filter,
+    //     updateDoc
+    //   );
+    //   res.send(result);
+    // });
 
     app.post("/collectreview", async (req, res) => {
       const review = req.body;
@@ -119,6 +151,32 @@ async function run() {
         .skip(page * size)
         .limit(size)
         .toArray();
+      res.send(result);
+    });
+
+    app.get("/adminsessions", async (req, res) => {
+      const result = await sessionCollection.find().toArray();
+      res.send(result);
+    });
+
+    app.patch("/sessionsupdate/:id", async (req, res) => {
+      const id = req.params.id;
+      const data = req.body;
+      const filter = { _id: new ObjectId(id) };
+      console.log(data);
+      const updateDoc = {
+        $set: {
+          title: data.title,
+          registrationStartDate: data.registrationStartDate,
+          registrationEndDate: data.registrationEndDate,
+          classStartDate: data.classStartDate,
+          classEndDate: data.classEndDate,
+          duration: data.duration,
+          description: data.description,
+        },
+      };
+
+      const result = await sessionCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
