@@ -8,9 +8,20 @@ const stripe = require("stripe")(process.env.STRIPE_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const port = process.env.PORT || 5000;
 
+const allowedOrigins = [
+  "https://imaginative-chebakia-1dc907.netlify.app",
+  "http://localhost:5173", // For development
+];
+
 app.use(
   cors({
-    origin: "https://imaginative-chebakia-1dc907.netlify.app/",
+    origin: (origin, callback) => {
+      if (allowedOrigins.includes(origin) || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
   })
 );
 app.use(express.json());
@@ -171,7 +182,8 @@ async function run() {
     });
 
     app.get("/sessionnumber", async (req, res) => {
-      const result = await sessionCollection.estimatedDocumentCount();
+      const query = { status: "approved" };
+      const result = await sessionCollection.countDocuments(query);
       res.send({ count: result });
     });
 
@@ -416,19 +428,47 @@ async function run() {
     });
 
     app.post("/create-payment-intent", async (req, res) => {
-      const { price } = req.body;
-      if (!price || isNaN(price)) {
-        return res.status(400).send({ error: "Invalid or missing price" });
+      try {
+        const { price } = req.body;
+
+        // Validate the `price` field
+        if (!price || typeof price !== "number" || isNaN(price)) {
+          return res.status(400).send({ error: "Invalid or missing price" });
+        }
+
+        // Convert price to cents
+        const amount = Math.round(price * 100);
+        console.log("Payment Amount (in cents):", amount);
+
+        // Create a payment intent
+        const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+          payment_method_types: ["card"],
+        });
+
+        // Send back the client secret
+        res.send({ clientSecret: paymentIntent.client_secret });
+      } catch (error) {
+        console.error("Error creating payment intent:", error.message);
+        res.status(500).send({ error: "Internal Server Error" });
       }
-      const amount = parseInt(price * 100);
-      console.log(amount);
-      const paymentIntent = await stripe.paymentIntents.create({
-        amount: amount,
-        currency: "usd",
-        payment_method_types: ["card"],
-      });
-      res.send({ clientSecret: paymentIntent.client_secret });
     });
+
+    // app.post("/create-payment-intent", async (req, res) => {
+    //   const { price } = req.body;
+    //   if (!price || isNaN(price)) {
+    //     return res.status(400).send({ error: "Invalid or missing price" });
+    //   }
+    //   const amount = parseInt(price * 100);
+    //   console.log(amount);
+    //   const paymentIntent = await stripe.paymentIntents.create({
+    //     amount: amount,
+    //     currency: "usd",
+    //     payment_method_types: ["card"],
+    //   });
+    //   res.send({ clientSecret: paymentIntent.client_secret });
+    // });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
