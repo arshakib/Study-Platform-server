@@ -29,9 +29,6 @@ app.use(morgan("dev"));
 
 const uri = `mongodb+srv://${process.env.USER}:${process.env.PASS}@cluster0.q7sgz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
-// const uri = "mongodb+srv://<db_username>:<db_password>@cluster0.q7sgz.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
@@ -42,9 +39,6 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
-
     const userCollection = client.db("study").collection("users");
     const sessionCollection = client.db("study").collection("sessions");
     const materialCollection = client.db("study").collection("materials");
@@ -371,7 +365,8 @@ async function run() {
     app.post("/payment", async (req, res) => {
       const paymentInfo = req.body;
       const query = {
-        bookedsessionId: paymentInfo.bookedsessionId,
+        bookedsessionId: paymentInfo?.bookedsessionId,
+        studentId: paymentInfo?.studentId,
       };
 
       const existingPayment = await bookedSessionCollection.findOne(query);
@@ -385,7 +380,7 @@ async function run() {
     app.get("/stop/:id", async (req, res) => {
       const id = req.params.id;
       const query = {
-        bookedsessionId: id,
+        studentId: id,
       };
       const result = await bookedSessionCollection.findOne(query);
       res.send(result);
